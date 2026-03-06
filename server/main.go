@@ -43,7 +43,10 @@ var db *sql.DB
 // initDB initializes SQLite database for telemetry
 func initDB() {
 	var err error
-	dbPath := "telemetry.db"
+	dbPath := os.Getenv("TELEMETRY_DB_PATH")
+	if dbPath == "" {
+		dbPath = "telemetry.db"
+	}
 	
 	// Open database (creates if doesn't exist)
 	db, err = sql.Open("sqlite", dbPath)
