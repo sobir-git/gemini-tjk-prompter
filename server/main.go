@@ -129,13 +129,16 @@ var contactLimiter = newRateLimiter(5) // max 5 contact requests per hour per IP
 
 var geminiClient *genai.Client
 
+var trustedProxy = os.Getenv("TRUSTED_PROXY") == "true"
+
 func getIP(r *http.Request) string {
-	xff := r.Header.Get("X-Forwarded-For")
-	if xff != "" {
-		parts := strings.Split(xff, ",")
-		ip := strings.TrimSpace(parts[len(parts)-1])
-		if ip != "" {
-			return ip
+	if trustedProxy {
+		xff := r.Header.Get("X-Forwarded-For")
+		if xff != "" {
+			ip := strings.TrimSpace(strings.Split(xff, ",")[0])
+			if ip != "" {
+				return ip
+			}
 		}
 	}
 	ip := r.RemoteAddr

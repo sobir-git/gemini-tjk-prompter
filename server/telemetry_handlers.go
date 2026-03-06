@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"os"
 	"strconv"
@@ -139,6 +140,8 @@ func renderEmptyDashboard(w http.ResponseWriter) {
 }
 
 func renderDashboard(w http.ResponseWriter, stats *TelemetryStats, modelStats []ModelStat, feedbacks []FeedbackEvent, username, password, host string) {
+	_ = username
+	_ = password
 	html := fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -247,8 +250,8 @@ func renderDashboard(w http.ResponseWriter, stats *TelemetryStats, modelStats []
         
         <div class="card">
             <h2>API Access</h2>
-            <p>You can access this data as JSON:</p>
-            <code>curl -u %s:%s -H "Accept: application/json" https://%s/api/telemetry</code>
+            <p>You can access this data as JSON via Basic Auth:</p>
+            <code>curl -u USER:PASS -H "Accept: application/json" https://%s/api/telemetry</code>
         </div>
     </div>
 
@@ -260,9 +263,9 @@ func renderDashboard(w http.ResponseWriter, stats *TelemetryStats, modelStats []
             try {
                 const response = await fetch('/api/telemetry?page=' + page + '&limit=20', {
                     headers: {
-                        'Authorization': 'Basic ' + btoa('%s:%s'),
                         'Accept': 'application/json'
-                    }
+                    },
+                    credentials: 'include'
                 });
                 
                 if (!response.ok) throw new Error('Failed to load events');
@@ -333,8 +336,7 @@ func renderDashboard(w http.ResponseWriter, stats *TelemetryStats, modelStats []
 		stats.UniqueModels,
 		generateModelTableRows(modelStats),
 		generateFeedbackTableRows(feedbacks),
-		username, password, host,
-		username, password,
+		host,
 	)
 	
 	w.Header().Set("Content-Type", "text/html")
@@ -367,9 +369,11 @@ func generateFeedbackTableRows(feedbacks []FeedbackEvent) string {
 	
 	var rows strings.Builder
 	for _, f := range feedbacks {
-		email := f.Email
-		if email == "" {
-			email = "<em style='color: #999;'>Not provided</em>"
+		var emailCell string
+		if f.Email == "" {
+			emailCell = "<em style='color: #999;'>Not provided</em>"
+		} else {
+			emailCell = html.EscapeString(f.Email)
 		}
 		
 		rows.WriteString(fmt.Sprintf(`
@@ -377,7 +381,7 @@ func generateFeedbackTableRows(feedbacks []FeedbackEvent) string {
 				<td style="white-space: nowrap;">%s</td>
 				<td>%s</td>
 				<td><div class="feedback-message">%s</div></td>
-			</tr>`, f.Timestamp, email, f.Message))
+			</tr>`, html.EscapeString(f.Timestamp), emailCell, html.EscapeString(f.Message)))
 	}
 	return rows.String()
 }
