@@ -19,16 +19,29 @@ func initDB() {
 		dbPath = "telemetry.db"
 	}
 	
-	// Open database (creates if doesn't exist)
-	db, err = sql.Open("sqlite3", dbPath)
+	// Ensure directory exists with proper permissions
+	if dir := os.Getenv("TELEMETRY_DB_PATH"); dir != "" {
+		// Extract directory from full path
+		dirPath := dir[:len(dir)-len("/telemetry.db")]
+		if err := os.MkdirAll(dirPath, 0755); err != nil {
+			log.Printf("WARNING: Failed to create database directory: %v", err)
+			return
+		}
+	}
+	
+	// Open database with connection string parameters for better compatibility
+	db, err = sql.Open("sqlite3", dbPath+"?cache=shared&mode=rwc")
 	if err != nil {
 		log.Printf("WARNING: Failed to open SQLite database: %v", err)
+		log.Printf("INFO: Telemetry will be disabled. Application will continue without it.")
 		return
 	}
 	
 	// Test connection
 	if err := db.Ping(); err != nil {
 		log.Printf("WARNING: Failed to ping SQLite database: %v", err)
+		log.Printf("INFO: This may be due to volume mount permissions on Railway.")
+		log.Printf("INFO: Telemetry will be disabled. Application will continue without it.")
 		db.Close()
 		db = nil
 		return
