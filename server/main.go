@@ -250,7 +250,7 @@ func processAudioHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(selectedModels) == 0 {
-		selectedModels = []string{"gemini-2.5-flash"}
+		selectedModels = []string{"gemini-3-pro-preview"}
 	}
 
 	outputLang := r.FormValue("output_language")

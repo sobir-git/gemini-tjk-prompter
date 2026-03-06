@@ -21,7 +21,7 @@ export default function App() {
   const [showContact, setShowContact] = useState(false)
   const [selectedModels, setSelectedModels] = useState<string[]>(() => {
     const saved = localStorage.getItem('selectedModels')
-    return saved ? JSON.parse(saved) : ['gemini-2.5-flash']
+    return saved ? JSON.parse(saved) : ['gemini-3-pro-preview']
   })
   const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>(() => {
     const saved = localStorage.getItem('outputLanguage')
