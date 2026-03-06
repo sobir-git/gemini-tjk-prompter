@@ -14,7 +14,7 @@ export default function App() {
   const [advancedMode, setAdvancedMode] = useState(false)
   const [selectedModels, setSelectedModels] = useState<string[]>(() => {
     const saved = localStorage.getItem('selectedModels')
-    return saved ? JSON.parse(saved) : ['gemini-2.0-flash']
+    return saved ? JSON.parse(saved) : ['gemini-3.1-flash-lite-preview']
   })
   const [, setAnalyser] = useState<AnalyserNode | null>(null)
 
