@@ -158,6 +158,11 @@ func processAudioHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(audioBytes) > 50<<20 { // 50MB limit
+		writeError(w, "audio file too large", http.StatusBadRequest)
+		return
+	}
+
 	mimeType := header.Header.Get("Content-Type")
 	if mimeType == "" {
 		mimeType = "audio/webm"

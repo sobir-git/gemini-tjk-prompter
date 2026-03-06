@@ -13,11 +13,11 @@ export function useAudioRecorder({ onStop, onAnalyserReady, onError }: UseAudioR
   const analyserRef = useRef<AnalyserNode | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const timerRef = useRef<number | null>(null)
 
   const stop = useCallback(() => {
     if (timerRef.current) {
-      clearTimeout(timerRef.current)
+      window.clearTimeout(timerRef.current)
       timerRef.current = null
     }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -59,7 +59,7 @@ export function useAudioRecorder({ onStop, onAnalyserReady, onError }: UseAudioR
       mediaRecorder.start()
 
       // Set 2-minute limit
-      timerRef.current = setTimeout(() => {
+      timerRef.current = window.setTimeout(() => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
           stop()
         }
