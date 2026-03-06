@@ -1,95 +1,76 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #161618; /* Smooth dark paper */
+  --bg-primary: #161618;
   --bg-secondary: #1E1E20;
   --bg-card: #222224;
   --bg-accent: #EAE8E3;
-  --border-light: #333336;
-  --border-dark: #EAE8E3;
+  --border-subtle: #333336;
+  --border-strong: #EAE8E3;
   --text-primary: #F0EEE9;
   --text-secondary: #A3A09A;
   --text-muted: #73716C;
-  --accent: #D47261; /* Brighter burnt orange for dark mode */
+  --accent: #D47261;
   --accent-hover: #E88270;
-  
+
   --font-display: 'Cormorant Garamond', serif;
   --font-sans: 'DM Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Flat background instead of grain */
+  body::before {
+    display: none;
+  }
 }
 
-body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
-  height: 100vh;
-  margin: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
-}
+@layer components {
+  .mono-label {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size: 0.75rem;
+  }
 
-#root {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+  .display-serif {
+    font-family: var(--font-display);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+  }
 
-::selection {
-  background: var(--accent);
-  color: var(--bg-primary);
-}
+  .italic-serif {
+    font-family: var(--font-display);
+    font-style: italic;
+  }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-light);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-.serif {
-  font-family: var(--font-display);
-}
-
-.sans {
-  font-family: var(--font-sans);
-}
-
-.mono {
-  font-family: var(--font-mono);
-  font-size: 0.85em;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-/* Base Utility Classes */
-.editorial-border {
-  border: 1px solid var(--border-dark);
-}
-
-.editorial-divider {
-  height: 1px;
-  background-color: var(--border-dark);
-  width: 100%;
-  margin: 2rem 0;
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
 }

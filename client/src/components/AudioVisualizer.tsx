@@ -50,7 +50,6 @@ export default function AudioVisualizer({ analyser }: Props) {
       ref={canvasRef}
       width={400}
       height={60}
-      style={{ width: '100%', height: '100%', display: 'block' }}
     />
   )
 }

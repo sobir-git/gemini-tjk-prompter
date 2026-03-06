@@ -1,4 +1,3 @@
-import { SlidersHorizontal } from 'lucide-react'
 import { AVAILABLE_MODELS } from '../types'
 
 interface Props {
@@ -8,93 +7,35 @@ interface Props {
   onToggleModel: (id: string) => void
 }
 
-export default function ModelSelector({ advancedMode, onToggleAdvanced, selectedModels, onToggleModel }: Props) {
-  return (
-    <>
-      <button
-        onClick={onToggleAdvanced}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.5rem 0.75rem',
-          borderRadius: '4px',
-          border: `1px solid ${advancedMode ? 'var(--accent)' : 'var(--border-light)'}`,
-          background: 'transparent',
-          color: advancedMode ? 'var(--accent)' : 'var(--text-muted)',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.7rem',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          cursor: 'pointer',
-          width: '100%',
-          transition: 'border-color 0.2s, color 0.2s',
-        }}
-      >
-        <SlidersHorizontal size={12} />
-        Advanced Mode
-      </button>
+export default function ModelSelector({ advancedMode, selectedModels, onToggleModel }: Props) {
+  if (!advancedMode) return null;
 
-      {advancedMode && (
-        <div>
-          <p style={{
-            marginBottom: '0.5rem',
-            fontSize: '0.65rem',
-            fontFamily: 'var(--font-mono)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            color: 'var(--text-muted)',
-          }}>
-            Select Models — {selectedModels.length} active
-          </p>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.3rem',
-            overflowY: 'auto',
-            maxHeight: '220px',
-            paddingRight: '4px',
-          }}>
-            {AVAILABLE_MODELS.map(model => {
-              const active = selectedModels.includes(model.id)
-              return (
-                <button
-                  key={model.id}
-                  onClick={() => onToggleModel(model.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    padding: '0.45rem 0.75rem',
-                    borderRadius: '4px',
-                    border: `1px solid ${active ? 'var(--accent)' : 'var(--border-light)'}`,
-                    background: active ? 'var(--bg-secondary)' : 'transparent',
-                    color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    fontSize: '0.8rem',
-                    fontFamily: 'var(--font-sans)',
-                    cursor: 'pointer',
-                    width: '100%',
-                    textAlign: 'left',
-                    transition: 'border-color 0.15s, color 0.15s, background 0.15s',
-                    flexShrink: 0,
-                  }}
-                >
-                  <span style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    border: `1px solid ${active ? 'var(--accent)' : 'currentColor'}`,
-                    background: active ? 'var(--accent)' : 'transparent',
-                    flexShrink: 0,
-                    transition: 'background 0.15s, border-color 0.15s',
-                  }} />
-                  {model.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-    </>
+  return (
+    <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6 w-full flex flex-col max-h-[400px]">
+      <div className="flex justify-between items-center mb-6 border-b border-[var(--border-subtle)] pb-2 flex-shrink-0">
+        <span className="mono-label text-[var(--text-secondary)] text-[10px]">Model Selection</span>
+        <span className="mono-label text-[var(--accent)] text-[10px]">{selectedModels.length} Active</span>
+      </div>
+      
+      <div className="flex flex-col gap-2 overflow-y-auto pr-2 custom-scrollbar">
+        {AVAILABLE_MODELS.map(model => {
+          const active = selectedModels.includes(model.id)
+          return (
+            <button
+              key={model.id}
+              onClick={() => onToggleModel(model.id)}
+              className={`flex items-center justify-between px-4 py-3 transition-colors mono-label text-[11px] border flex-shrink-0 ${
+                active 
+                  ? 'bg-[var(--bg-secondary)] border-[var(--accent)] text-[var(--text-primary)]' 
+                  : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              <span>{model.label}</span>
+              {active && <div className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full" />}
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }

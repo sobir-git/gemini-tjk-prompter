@@ -1,12 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff } from 'lucide-react'
-import AudioVisualizer from './components/AudioVisualizer'
 import ModelSelector from './components/ModelSelector'
 import ResultsPanel from './components/ResultsPanel'
 import { useAudioRecorder } from './hooks/useAudioRecorder'
 import { STATUS, AppStatus, ModelResult, PromptResponse } from './types'
-import './App.css'
 
 export default function App() {
   const [status, setStatus] = useState<AppStatus>(STATUS.IDLE)
@@ -14,11 +12,17 @@ export default function App() {
   const [error, setError] = useState('')
   const [currentDate, setCurrentDate] = useState('')
   const [advancedMode, setAdvancedMode] = useState(false)
-  const [selectedModels, setSelectedModels] = useState(['gemini-2.5-flash'])
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null)
+  const [selectedModels, setSelectedModels] = useState<string[]>(() => {
+    const saved = localStorage.getItem('selectedModels')
+    return saved ? JSON.parse(saved) : ['gemini-2.0-flash']
+  })
+  const [, setAnalyser] = useState<AnalyserNode | null>(null)
 
   const selectedModelsRef = useRef(selectedModels)
-  useEffect(() => { selectedModelsRef.current = selectedModels }, [selectedModels])
+  useEffect(() => { 
+    selectedModelsRef.current = selectedModels 
+    localStorage.setItem('selectedModels', JSON.stringify(selectedModels))
+  }, [selectedModels])
 
   useEffect(() => {
     setCurrentDate(new Date().toLocaleDateString('en-US', {
@@ -85,80 +89,105 @@ export default function App() {
   const isProcessing = status === STATUS.PROCESSING
 
   return (
-    <div className="app-shell">
-
-      <header className="app-header">
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem,6vw,4rem)', fontWeight: 400, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+    <div className="min-h-screen flex flex-col px-8 py-4 max-w-[1400px] mx-auto">
+      {/* Header / Masthead */}
+      <header className="flex justify-between items-end border-b border-[var(--border-strong)] pb-4 mb-6">
+        <h1 className="display-serif text-[4rem] font-light text-[var(--text-primary)]">
           The Art<br />of the Prompt
         </h1>
-        <div className="text-right flex flex-col gap-2 text-[var(--text-muted)] mono">
+        <div className="flex flex-col items-end mono-label text-[var(--text-secondary)] leading-relaxed">
           <span>Vol. I — Issue 04</span>
           <span>{currentDate}</span>
-          <span>London / San Francisco</span>
+          <span>Dushanbe / San Francisco</span>
         </div>
       </header>
 
-      <main className="app-main">
+      {/* Main Layout */}
+      <main className="flex-1 flex relative">
+        {/* Vertical Divider */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-[var(--border-subtle)] -translate-x-1/2" />
 
-        <aside className="app-sidebar">
-
-          {/* Center section: lead + record button */}
-          <div className="action-grow">
-            <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', lineHeight: 1.35, fontStyle: 'italic', color: 'var(--text-secondary)', textAlign: 'center' }}>
+        {/* Left Column — Input Side */}
+        <section className="w-1/2 flex flex-col pr-12 py-4 h-[calc(100vh-280px)] min-h-[400px]">
+          <div className="flex-1 flex flex-col items-center justify-center gap-8">
+            <p className="italic-serif text-[var(--text-secondary)] text-lg text-center max-w-[280px]">
               Transforming raw vocalization into structured syntax.
             </p>
 
-            <button
-              className={`record-btn${isRecording ? ' recording' : ''}`}
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={isProcessing}
-              aria-label={isRecording ? 'Stop Recording' : 'Start Recording'}
-            >
-              {isRecording ? <MicOff size={40} strokeWidth={1} /> : <Mic size={40} strokeWidth={1} />}
-            </button>
+            <div className="flex flex-col items-center gap-6">
+              <motion.button
+                whileHover={{ backgroundColor: 'var(--bg-accent)', color: 'var(--bg-primary)' }}
+                animate={{
+                  backgroundColor: isRecording ? 'var(--accent)' : 'transparent',
+                  borderColor: isRecording ? 'var(--accent)' : 'var(--border-subtle)',
+                  boxShadow: isRecording ? '0 0 20px var(--accent)' : 'none'
+                }}
+                transition={{ duration: 0 }}
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isProcessing}
+                className={`w-[120px] h-[120px] rounded-full border border-[var(--border-subtle)] flex items-center justify-center`}
+                aria-label={isRecording ? 'Stop Recording' : 'Start Recording'}
+              >
+                {isRecording ? <MicOff size={40} strokeWidth={1} /> : <Mic size={40} strokeWidth={1} />}
+              </motion.button>
 
-            <div className="mono text-[var(--text-muted)] text-center">
-              <span>{isRecording ? 'LISTENING...' : isProcessing ? 'PROCESSING...' : 'DICTATE'}</span>
-            </div>
-
-            <div className="w-full h-[60px] relative">
-              <AnimatePresence>
-                {isRecording && analyser && (
-                  <motion.div
-                    className="absolute inset-0"
-                    style={{ opacity: 0.4 }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.4 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <AudioVisualizer analyser={analyser} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <span className="mono-label text-[var(--text-secondary)]">
+                {isRecording ? 'LISTENING...' : isProcessing ? 'PROCESSING...' : 'DICTATE'}
+              </span>
             </div>
           </div>
 
-          {/* Bottom: advanced mode toggle */}
-          <ModelSelector
-            advancedMode={advancedMode}
-            onToggleAdvanced={() => setAdvancedMode(v => !v)}
-            selectedModels={selectedModels}
-            onToggleModel={toggleModel}
-          />
-        </aside>
+          <div className="w-full mt-8 relative">
+            <button
+              onClick={() => setAdvancedMode(v => !v)}
+              className={`w-full py-3 border mono-label transition-colors ${
+                advancedMode 
+                  ? 'border-[var(--accent)] text-[var(--accent)]' 
+                  : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--text-secondary)]'
+              }`}
+            >
+              ADVANCED MODE
+            </button>
 
-        <ResultsPanel
-          status={status}
-          results={results}
-          error={error}
-          onReset={reset}
-        />
+            <AnimatePresence>
+              {advancedMode && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute bottom-full left-0 w-full mb-4 z-50 shadow-2xl"
+                >
+                  <ModelSelector
+                    advancedMode={advancedMode}
+                    onToggleAdvanced={() => {}}
+                    selectedModels={selectedModels}
+                    onToggleModel={toggleModel}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </section>
+
+        {/* Right Column — Output Side */}
+        <section className="w-1/2 flex flex-col pl-12 py-4 h-[calc(100vh-280px)] min-h-[400px]">
+          <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+            <ResultsPanel
+              status={status}
+              results={results}
+              error={error}
+              onReset={reset}
+              advancedMode={advancedMode}
+            />
+          </div>
+        </section>
       </main>
 
-      <footer className="app-footer mono text-[var(--text-muted)]">
+      {/* Footer */}
+      <footer className="mt-6 pt-4 border-t border-[var(--border-strong)] flex justify-between items-center mono-label text-[var(--text-muted)]">
         <span>© {new Date().getFullYear()} Vox Synth</span>
         {advancedMode && (
-          <span>{selectedModels.length} model{selectedModels.length > 1 ? 's' : ''} selected</span>
+          <span className="opacity-60">{selectedModels.length} model{selectedModels.length > 1 ? 's' : ''} selected</span>
         )}
       </footer>
     </div>
