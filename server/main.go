@@ -36,22 +36,19 @@ IMPORTANT: Do not engage in internal reasoning or thinking. Output immediately w
 	geminiTimeoutSeconds     = 60
 )
 
-// thinkingModels maps model name prefix to the correct thinking-disable strategy.
-// - "budget": use ThinkingBudget=0 (Gemini 2.5 series)
-// - "level":  use ThinkingLevel="minimal" (Gemini 3.x series, cannot fully disable)
+// thinkingModels maps model name prefix to the correct thinking-minimise strategy.
+// - "budget": use ThinkingBudget=0 (Gemini 2.5 series, can fully disable)
+// - "budget1": use ThinkingBudget=1 (Gemini 3.x series, cannot disable; budget=0 is invalid)
 // - "":       no ThinkingConfig (models that don't support it)
 var modelThinkingStrategy = map[string]string{
 	"gemini-2.5-flash":              "budget",
 	"gemini-2.5-flash-lite":         "budget",
 	"gemini-2.5-pro":                "budget",
 	"gemini-2.0-flash":              "",
-	"gemini-flash-latest":           "",
-	"gemini-flash-lite-latest":      "",
-	"gemini-pro-latest":             "",
-	"gemini-3-flash-preview":        "level",
-	"gemini-3-pro-preview":          "level",
-	"gemini-3.1-flash-lite-preview": "level",
-	"gemini-3.1-pro-preview":        "level",
+	"gemini-3-flash-preview":        "budget1",
+	"gemini-3-pro-preview":          "budget1",
+	"gemini-3.1-flash-lite-preview": "budget1",
+	"gemini-3.1-pro-preview":        "budget1",
 }
 
 // thinkingConfigFor returns the appropriate ThinkingConfig to minimise
@@ -62,9 +59,9 @@ func thinkingConfigFor(model string) *genai.ThinkingConfig {
 	case "budget":
 		zero := int32(0)
 		return &genai.ThinkingConfig{ThinkingBudget: &zero}
-	case "level":
-		lvl := genai.ThinkingLevelMinimal
-		return &genai.ThinkingConfig{ThinkingLevel: lvl}
+	case "budget1":
+		one := int32(1)
+		return &genai.ThinkingConfig{ThinkingBudget: &one}
 	default:
 		return nil
 	}
@@ -77,9 +74,6 @@ var allowedModels = map[string]bool{
 	"gemini-2.5-flash-lite":         true,
 	"gemini-2.5-pro":                true,
 	"gemini-2.0-flash":              true,
-	"gemini-flash-latest":           true,
-	"gemini-flash-lite-latest":      true,
-	"gemini-pro-latest":             true,
 	"gemini-3-flash-preview":        true,
 	"gemini-3-pro-preview":          true,
 	"gemini-3.1-flash-lite-preview": true,
