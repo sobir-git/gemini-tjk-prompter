@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	maxGlobalRequestsPerHour = 100
-	maxUserRequestsPerHour   = 20
+	maxGlobalRequestsPerHour = 300
+	maxUserRequestsPerHour   = 40
 	maxAudioSizeBytes        = 50 << 20 // 50MB
 	geminiTimeoutSeconds     = 60
 )
@@ -88,7 +88,17 @@ var allowedModels = map[string]bool{
 type RateLimiter struct {
 	mu       sync.Mutex
 	requests map[string][]time.Time
+	maxLimit int
 }
+
+func newRateLimiter(maxLimit int) *RateLimiter {
+	return &RateLimiter{
+		requests: make(map[string][]time.Time),
+		maxLimit: maxLimit,
+	}
+}
+
+const globalKey = "__global__"
 
 func (rl *RateLimiter) checkLimit(ip string) error {
 	rl.mu.Lock()
@@ -105,7 +115,7 @@ func (rl *RateLimiter) checkLimit(ip string) error {
 		}
 	}
 
-	if len(recent) >= maxUserRequestsPerHour {
+	if len(recent) >= rl.maxLimit {
 		return fmt.Errorf("rate limit exceeded")
 	}
 
@@ -113,9 +123,9 @@ func (rl *RateLimiter) checkLimit(ip string) error {
 	return nil
 }
 
-var limiter = &RateLimiter{
-	requests: make(map[string][]time.Time),
-}
+var limiter = newRateLimiter(maxUserRequestsPerHour)
+var globalLimiter = newRateLimiter(maxGlobalRequestsPerHour)
+var contactLimiter = newRateLimiter(5) // max 5 contact requests per hour per IP
 
 var geminiClient *genai.Client
 
@@ -194,6 +204,11 @@ func init() {
 func processAudioHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := globalLimiter.checkLimit(globalKey); err != nil {
+		writeError(w, "server is busy, please try again later", http.StatusTooManyRequests)
 		return
 	}
 
@@ -341,7 +356,7 @@ func contactHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ip := getIP(r)
-	if err := limiter.checkLimit(ip); err != nil {
+	if err := contactLimiter.checkLimit(ip); err != nil {
 		writeError(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
 		return
 	}
