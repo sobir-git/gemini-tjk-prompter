@@ -13,8 +13,8 @@ RUN npm run build
 # Go builder stage with optimized caching
 FROM golang:1.26-alpine AS builder
 WORKDIR /app
-# Install SQLite development dependencies
-RUN apk add --no-cache sqlite-dev
+# Install SQLite development dependencies and build tools for CGO
+RUN apk add --no-cache sqlite-dev build-base
 # Copy go mod files first (cached unless they change)
 COPY server/go.mod server/go.sum ./
 # Download dependencies

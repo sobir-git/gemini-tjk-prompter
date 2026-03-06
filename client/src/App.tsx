@@ -4,6 +4,7 @@ import { Mic, MicOff } from 'lucide-react'
 import ModelSelector from './components/ModelSelector'
 import ResultsPanel from './components/ResultsPanel'
 import AudioVisualizer from './components/AudioVisualizer'
+import PrivacyPolicy from './components/PrivacyPolicy'
 import { useAudioRecorder } from './hooks/useAudioRecorder'
 import { STATUS, AppStatus, ModelResult, PromptResponse } from './types'
 
@@ -13,6 +14,7 @@ export default function App() {
   const [error, setError] = useState('')
   const [currentDate, setCurrentDate] = useState('')
   const [advancedMode, setAdvancedMode] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
   const [selectedModels, setSelectedModels] = useState<string[]>(() => {
     const saved = localStorage.getItem('selectedModels')
     return saved ? JSON.parse(saved) : ['gemini-2.5-flash']
@@ -224,11 +226,21 @@ export default function App() {
 
       {/* Footer */}
       <footer className="mt-6 pt-4 border-t border-[var(--border-strong)] flex justify-between items-center mono-label text-[var(--text-muted)] flex-shrink-0">
-        <span>© {new Date().getFullYear()} Пиндори Нав</span>
-        {advancedMode && (
-          <span className="opacity-60">{selectedModels.length} {selectedModels.length > 1 ? 'моделҳо' : 'модел'} интихоб шудаанд</span>
-        )}
+        <div className="flex flex-col gap-1">
+          <span>© {new Date().getFullYear()} Пиндори Нав</span>
+          {advancedMode && (
+            <span className="opacity-60">{selectedModels.length} {selectedModels.length > 1 ? 'моделҳо' : 'модел'} интихоб шудаанд</span>
+          )}
+        </div>
+        <button 
+          onClick={() => setShowPrivacy(true)}
+          className="hover:text-[var(--text-secondary)] transition-colors underline-offset-4 hover:underline"
+        >
+          Сиёсати маҳрамият
+        </button>
       </footer>
+
+      <PrivacyPolicy isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} />
     </div>
   )
 }
