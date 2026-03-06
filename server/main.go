@@ -236,6 +236,8 @@ func main() {
 	if apiKey == "" {
 		log.Fatal("GEMINI_API_KEY environment variable is required. Set it in your .env file.")
 	}
+	apiKey = strings.TrimSpace(apiKey)
+	os.Setenv("GEMINI_API_KEY", apiKey)
 
 // API routes
 	http.HandleFunc("/health", corsMiddleware(healthHandler))
