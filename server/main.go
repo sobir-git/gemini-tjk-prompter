@@ -30,8 +30,25 @@ Do not add explanations, preambles, or commentary. Simply provide the clear, art
 
 	maxGlobalRequestsPerHour = 100
 	maxUserRequestsPerHour   = 20
-	maxAudioDurationSeconds  = 120
+	maxAudioSizeBytes        = 50 << 20 // 50MB
+	geminiTimeoutSeconds     = 60
 )
+
+// allowedModels is the whitelist of permitted Gemini models.
+// Must stay in sync with AVAILABLE_MODELS in client/src/types.ts.
+var allowedModels = map[string]bool{
+	"gemini-2.5-flash":              true,
+	"gemini-2.5-flash-lite":         true,
+	"gemini-2.5-pro":                true,
+	"gemini-2.0-flash":              true,
+	"gemini-flash-latest":           true,
+	"gemini-flash-lite-latest":      true,
+	"gemini-pro-latest":             true,
+	"gemini-3-flash-preview":        true,
+	"gemini-3-pro-preview":          true,
+	"gemini-3.1-flash-lite-preview": true,
+	"gemini-3.1-pro-preview":        true,
+}
 
 type RateLimiter struct {
 	sync.Mutex
@@ -68,12 +85,27 @@ var limiter = &RateLimiter{
 	lastReset:    time.Now(),
 }
 
+// geminiClient is a package-level singleton to avoid per-request TLS overhead.
+var geminiClient *genai.Client
+
+// getIP extracts the real client IP. On Railway (and similar proxies), the
+// real IP is the LAST entry in X-Forwarded-For, not the first, because earlier
+// entries can be spoofed by the client.
 func getIP(r *http.Request) string {
-	ip := r.Header.Get("X-Forwarded-For")
-	if ip == "" {
-		ip = r.RemoteAddr
+	xff := r.Header.Get("X-Forwarded-For")
+	if xff != "" {
+		parts := strings.Split(xff, ",")
+		ip := strings.TrimSpace(parts[len(parts)-1])
+		if ip != "" {
+			return ip
+		}
 	}
-	return strings.Split(ip, ":")[0]
+	// Fall back to direct connection IP, strip port.
+	ip := r.RemoteAddr
+	if idx := strings.LastIndex(ip, ":"); idx != -1 {
+		ip = ip[:idx]
+	}
+	return ip
 }
 
 type ModelResult struct {
@@ -93,8 +125,16 @@ type ErrorResponse struct {
 }
 
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	allowedOrigin := os.Getenv("CORS_ORIGIN")
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		if allowedOrigin == "" || allowedOrigin == "*" {
+			// No restriction configured — allow all (dev fallback only).
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		} else if origin == allowedOrigin {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
@@ -111,7 +151,6 @@ func writeError(w http.ResponseWriter, msg string, code int) {
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(ErrorResponse{Error: msg})
 }
-
 
 //go:embed web/dist/*
 var embeddedStatic embed.FS
@@ -140,42 +179,58 @@ func processAudioHandler(w http.ResponseWriter, r *http.Request) {
 
 	startTime := time.Now()
 
-	if err := r.ParseMultipartForm(25 << 20); err != nil {
-		writeError(w, "failed to parse form: "+err.Error(), http.StatusBadRequest)
+	// Enforce size limit before reading body into memory.
+	r.Body = http.MaxBytesReader(w, r.Body, maxAudioSizeBytes+1<<20) // audio + form overhead
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		writeError(w, "request too large or malformed", http.StatusBadRequest)
 		return
 	}
 
 	file, header, err := r.FormFile("audio")
 	if err != nil {
-		writeError(w, "audio field missing: "+err.Error(), http.StatusBadRequest)
+		writeError(w, "audio field missing", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	audioBytes, err := io.ReadAll(file)
+	// Reject oversized files before reading.
+	if header.Size > maxAudioSizeBytes {
+		writeError(w, "audio file too large (max 50MB)", http.StatusBadRequest)
+		return
+	}
+
+	audioBytes, err := io.ReadAll(io.LimitReader(file, maxAudioSizeBytes))
 	if err != nil {
-		writeError(w, "failed to read audio: "+err.Error(), http.StatusInternalServerError)
+		log.Printf("ERROR: failed to read audio: %v", err)
+		writeError(w, "failed to read audio", http.StatusInternalServerError)
 		return
 	}
 
-	if len(audioBytes) > 50<<20 { // 50MB limit
-		writeError(w, "audio file too large", http.StatusBadRequest)
-		return
-	}
-
+	// Ignore client-supplied MIME type; default to audio/webm.
+	// Only allow known audio MIME types to prevent non-audio abuse.
 	mimeType := header.Header.Get("Content-Type")
-	if mimeType == "" {
+	switch mimeType {
+	case "audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav", "audio/flac":
+		// accepted
+	default:
 		mimeType = "audio/webm"
 	}
 
-	ctx := context.Background()
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  os.Getenv("GEMINI_API_KEY"),
-		Backend: genai.BackendGeminiAPI,
-	})
-	if err != nil {
-		writeError(w, "failed to create Gemini client: "+err.Error(), http.StatusInternalServerError)
-		return
+	// Parse and whitelist requested models.
+	modelsStr := r.FormValue("models")
+	var selectedModels []string
+	if modelsStr != "" {
+		for _, m := range strings.Split(modelsStr, ",") {
+			m = strings.TrimSpace(m)
+			m = strings.TrimPrefix(m, "models/")
+			if allowedModels[m] {
+				selectedModels = append(selectedModels, m)
+			}
+		}
+	}
+	if len(selectedModels) == 0 {
+		selectedModels = []string{"gemini-2.5-flash"}
 	}
 
 	parts := []*genai.Part{
@@ -196,21 +251,6 @@ func processAudioHandler(w http.ResponseWriter, r *http.Request) {
 		SystemInstruction: genai.NewContentFromText(systemInstruction, genai.RoleUser),
 	}
 
-	modelsStr := r.FormValue("models")
-	var selectedModels []string
-	if modelsStr != "" {
-		for _, m := range strings.Split(modelsStr, ",") {
-			m = strings.TrimSpace(m)
-			m = strings.TrimPrefix(m, "models/")
-			if m != "" {
-				selectedModels = append(selectedModels, m)
-			}
-		}
-	}
-	if len(selectedModels) == 0 {
-		selectedModels = []string{"gemini-2.5-flash"}
-	}
-
 	var results []ModelResult
 	var wg sync.WaitGroup
 	var mu sync.Mutex
@@ -219,27 +259,32 @@ func processAudioHandler(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func(m string) {
 			defer wg.Done()
+
+			// Per-call timeout so hung Gemini requests don't leak goroutines.
+			ctx, cancel := context.WithTimeout(context.Background(), geminiTimeoutSeconds*time.Second)
+			defer cancel()
+
 			startModelTime := time.Now()
-			res, err := client.Models.GenerateContent(ctx, m, contents, config)
+			res, err := geminiClient.Models.GenerateContent(ctx, m, contents, config)
 			modelTime := time.Since(startModelTime).Milliseconds()
 
 			mu.Lock()
 			defer mu.Unlock()
 
 			if err != nil {
+				log.Printf("ERROR: Gemini model %s failed: %v", m, err)
 				results = append(results, ModelResult{
-					Model: m,
-					Error: err.Error(),
+					Model:  m,
+					Error:  "model request failed",
 					TimeMs: modelTime,
 				})
 				return
 			}
 
-			optimizedPrompt := res.Text()
 			results = append(results, ModelResult{
-				Model: m,
-				OptimizedPrompt: optimizedPrompt,
-				TimeMs: modelTime,
+				Model:           m,
+				OptimizedPrompt: res.Text(),
+				TimeMs:          modelTime,
 			})
 		}(modelName)
 	}
@@ -292,12 +337,24 @@ func main() {
 		port = "9000"
 	}
 
-	apiKey := os.Getenv("GEMINI_API_KEY")
+	apiKey := strings.TrimSpace(os.Getenv("GEMINI_API_KEY"))
 	if apiKey == "" {
-		log.Fatal("GEMINI_API_KEY environment variable is required. Set it in your .env file.")
+		log.Fatal("GEMINI_API_KEY environment variable is required.")
 	}
-	apiKey = strings.TrimSpace(apiKey)
-	os.Setenv("GEMINI_API_KEY", apiKey)
+
+	// Initialize the singleton Gemini client once at startup.
+	var err error
+	geminiClient, err = genai.NewClient(context.Background(), &genai.ClientConfig{
+		APIKey:  apiKey,
+		Backend: genai.BackendGeminiAPI,
+	})
+	if err != nil {
+		log.Fatalf("failed to create Gemini client: %v", err)
+	}
+
+	if os.Getenv("CORS_ORIGIN") == "" {
+		log.Println("WARNING: CORS_ORIGIN not set — all origins are allowed. Set it to your frontend URL in production.")
+	}
 
 // API routes
 	http.HandleFunc("/health", corsMiddleware(healthHandler))
