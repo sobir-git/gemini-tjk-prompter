@@ -37,16 +37,21 @@ WORKDIR /app
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
+# Install su-exec for switching users
+RUN apk --no-cache add su-exec
+
 # Copy only the binary from builder stage
 COPY --from=builder /app/server .
 
-# Create data directory for SQLite database with proper permissions
-RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data && chmod -R 755 /app/data
+# Copy entrypoint script
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
 
-USER appuser
+# Create data directory for SQLite database
+RUN mkdir -p /app/data
 
 # Set default DB path to the persistent volume
 ENV TELEMETRY_DB_PATH=/app/data/telemetry.db
 # Railway sets PORT env var
 EXPOSE 8080
-CMD ["./server"]
+ENTRYPOINT ["./entrypoint.sh"]
