@@ -44,6 +44,7 @@ Focus on:
 - Outputting only the refined text translated into %s
 
 Do not add explanations, preambles, or commentary. Simply provide the clear, articulated version of what the user said.
+IMPORTANT: Do not enclose the output in quotes, markdown blocks, or any other formatting. Output the raw text only.
 
 IMPORTANT: Do not engage in internal reasoning or thinking. Output immediately without deliberation.`, targetLang, targetLang)
 }
