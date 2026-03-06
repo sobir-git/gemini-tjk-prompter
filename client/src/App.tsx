@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff } from 'lucide-react'
 import ModelSelector from './components/ModelSelector'
 import ResultsPanel from './components/ResultsPanel'
+import AudioVisualizer from './components/AudioVisualizer'
 import { useAudioRecorder } from './hooks/useAudioRecorder'
 import { STATUS, AppStatus, ModelResult, PromptResponse } from './types'
 
@@ -16,7 +17,7 @@ export default function App() {
     const saved = localStorage.getItem('selectedModels')
     return saved ? JSON.parse(saved) : ['gemini-2.5-flash']
   })
-  const [, setAnalyser] = useState<AnalyserNode | null>(null)
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null)
 
   const selectedModelsRef = useRef(selectedModels)
   useEffect(() => { 
@@ -63,7 +64,7 @@ export default function App() {
     }
   }, [])
 
-  const { start: startRecorder, stop: stopRecorder } = useAudioRecorder({
+  const { start: startRecorder, stop: stopRecorder, cancel: cancelRecorder } = useAudioRecorder({
     onAnalyserReady: setAnalyser,
     onStop: (blob) => { processAudio(blob) },
     onError: (msg) => { setError(msg); setStatus(STATUS.ERROR) },
@@ -81,6 +82,12 @@ export default function App() {
     stopRecorder()
     setAnalyser(null)
   }, [stopRecorder])
+
+  const cancelRecording = useCallback(() => {
+    cancelRecorder()
+    setAnalyser(null)
+    setStatus(STATUS.IDLE)
+  }, [cancelRecorder])
 
   const reset = useCallback(() => {
     setStatus(STATUS.IDLE)
@@ -150,6 +157,21 @@ export default function App() {
               <span className="mono-label text-[var(--text-secondary)]">
                 {isRecording ? 'ГӮШ КАРДА ИСТОДААМ...' : isProcessing ? 'КОРКАРД...' : 'СУХАНРОНӢ'}
               </span>
+
+              {isRecording && (
+                <button
+                  onClick={cancelRecording}
+                  className="mt-4 px-4 py-2 border border-[var(--accent)] text-[var(--accent)] mono-label text-xs hover:bg-[var(--accent)] hover:text-white transition-all"
+                >
+                  Бекор кардан
+                </button>
+              )}
+
+              {isRecording && analyser && (
+                <div className="h-[60px] w-[300px] flex items-center justify-center opacity-80 mt-4 transition-opacity duration-300">
+                  <AudioVisualizer analyser={analyser} />
+                </div>
+              )}
             </div>
           </div>
 

@@ -13,6 +13,18 @@ export default function AudioVisualizer({ analyser }: Props) {
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')!
+    
+    // Handle Retina displays
+    const dpr = window.devicePixelRatio || 1
+    const rect = canvas.getBoundingClientRect()
+    
+    // Set actual size in memory (scaled to account for extra pixel density)
+    canvas.width = rect.width * dpr
+    canvas.height = rect.height * dpr
+    
+    // Normalize coordinate system to use css pixels
+    ctx.scale(dpr, dpr)
+
     const bufferLength = analyser.frequencyBinCount
     const dataArray = new Uint8Array(bufferLength)
 
@@ -20,7 +32,9 @@ export default function AudioVisualizer({ analyser }: Props) {
       rafRef.current = requestAnimationFrame(draw)
       analyser.getByteFrequencyData(dataArray)
 
-      const { width, height } = canvas
+      const width = rect.width
+      const height = rect.height
+      
       ctx.clearRect(0, 0, width, height)
 
       const barCount = 32
@@ -48,8 +62,7 @@ export default function AudioVisualizer({ analyser }: Props) {
   return (
     <canvas
       ref={canvasRef}
-      width={400}
-      height={60}
+      style={{ width: '100%', height: '100%' }}
     />
   )
 }

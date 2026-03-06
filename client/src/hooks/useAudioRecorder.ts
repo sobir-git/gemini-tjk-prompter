@@ -12,6 +12,8 @@ export function useAudioRecorder({ onStop, onAnalyserReady, onError }: UseAudioR
   const streamRef = useRef<MediaStream | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
+  const startTimeRef = useRef<number>(0)
+  const canceledRef = useRef<boolean>(false)
 
   const timerRef = useRef<number | null>(null)
 
@@ -27,8 +29,14 @@ export function useAudioRecorder({ onStop, onAnalyserReady, onError }: UseAudioR
     audioContextRef.current?.close()
   }, [])
 
+  const cancel = useCallback(() => {
+    canceledRef.current = true
+    stop()
+  }, [stop])
+
   const start = useCallback(async () => {
     try {
+      canceledRef.current = false
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
 
@@ -51,7 +59,24 @@ export function useAudioRecorder({ onStop, onAnalyserReady, onError }: UseAudioR
         }
       }
 
+      mediaRecorder.onstart = () => {
+        startTimeRef.current = Date.now()
+      }
+
       mediaRecorder.onstop = () => {
+        if (canceledRef.current) {
+          // Silent exit if canceled
+          return
+        }
+
+        const duration = Date.now() - startTimeRef.current
+        
+        // Discard recordings shorter than 2 seconds (2000ms)
+        if (duration < 2000) {
+          onError('Сабт хеле кӯтоҳ аст. Лутфан на камтар аз 2 сония сухан гӯед.')
+          return
+        }
+
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
         onStop(audioBlob, analyser)
       }
@@ -66,9 +91,9 @@ export function useAudioRecorder({ onStop, onAnalyserReady, onError }: UseAudioR
       }, 120000)
 
     } catch {
-      onError('Microphone access denied or unavailable.')
+      onError('Дастрасӣ ба микрофон рад шуд ё дастнорас аст.')
     }
   }, [onStop, onAnalyserReady, onError, stop])
 
-  return { start, stop, analyserRef }
+  return { start, stop, cancel, analyserRef }
 }
