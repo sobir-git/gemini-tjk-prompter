@@ -35,20 +35,20 @@ export default function PrivacyPolicy({ isOpen, onClose }: Props) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6 text-[var(--text-secondary)] leading-relaxed font-sans">
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6 text-[var(--text-secondary)] leading-relaxed mono-label">
               <section className="space-y-3">
-                <h3 className="mono-label text-[var(--text-primary)] text-sm">Маълумоти умумӣ</h3>
-                <p>
+                <h3 className="text-[var(--text-primary)] text-sm uppercase tracking-wide">Маълумоти умумӣ</h3>
+                <p className="text-[11px] leading-relaxed">
                   Мо ба маҳрамияти шумо эҳтиром мегузорем. Ин ҳуҷҷат мефаҳмонад, ки ҳангоми истифодаи хидмати мо чӣ гуна маълумот ҷамъоварӣ мешавад.
                 </p>
               </section>
 
               <section className="space-y-3">
-                <h3 className="mono-label text-[var(--text-primary)] text-sm">Чӣ гуна маълумот ҷамъ намешавад</h3>
-                <p className="italic-serif border-l-2 border-[var(--accent)] pl-4">
+                <h3 className="text-[var(--text-primary)] text-sm uppercase tracking-wide">Чӣ гуна маълумот ҷамъ намешавад</h3>
+                <p className="text-[11px] leading-relaxed border-l-2 border-[var(--accent)] pl-4">
                   Мо ҳеҷ гуна маълумоти шахсӣ, сабтҳои аудиоӣ ё натиҷаҳои коркарди моделро <strong>захира намекунем</strong>.
                 </p>
-                <ul className="list-disc pl-5 space-y-2 opacity-80">
+                <ul className="list-disc pl-5 space-y-2 text-[11px] leading-relaxed opacity-80">
                   <li>Сабтҳои аудиоӣ фавран пас аз коркард нест карда мешаванд.</li>
                   <li>Матни ҳосилшуда танҳо ба шумо нишон дода мешавад ва дар сервери мо нигоҳ дошта намешавад.</li>
                   <li>Мо ном, суроғаи почтаи электронӣ ё дигар маълумоти мушаххаскунандаро намепурсем.</li>
@@ -56,11 +56,11 @@ export default function PrivacyPolicy({ isOpen, onClose }: Props) {
               </section>
 
               <section className="space-y-3">
-                <h3 className="mono-label text-[var(--text-primary)] text-sm">Чӣ гуна маълумот ҷамъ мешавад (Телеметрия)</h3>
-                <p>
+                <h3 className="text-[var(--text-primary)] text-sm uppercase tracking-wide">Чӣ гуна маълумот ҷамъ мешавад (Телеметрия)</h3>
+                <p className="text-[11px] leading-relaxed">
                   Барои беҳтар кардани хидмат ва назорати сифат, мо танҳо маълумоти зерини анонимиро ҷамъоварӣ мекунем:
                 </p>
-                <ul className="list-disc pl-5 space-y-2 opacity-80">
+                <ul className="list-disc pl-5 space-y-2 text-[11px] leading-relaxed opacity-80">
                   <li>Кадом модели зеҳни сунъӣ истифода шуд.</li>
                   <li>Вақти иҷрои дархост ва давомнокии аудио.</li>
                   <li>Ҳолати дархост (муваффақият ё хатогӣ).</li>
@@ -69,7 +69,7 @@ export default function PrivacyPolicy({ isOpen, onClose }: Props) {
               </section>
 
               <section className="space-y-3 pt-4 border-t border-[var(--border-subtle)]">
-                <p className="text-xs text-[var(--text-muted)]">
+                <p className="text-[10px] text-[var(--text-muted)]">
                   Истифодаи ин хидмат маънои розигии шуморо ба ҷамъоварии маълумоти анонимии дар боло зикршуда дорад.
                 </p>
               </section>

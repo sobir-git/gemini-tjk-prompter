@@ -18,23 +18,35 @@ import (
 )
 
 const (
-	systemInstruction = `Your task is to take raw voice dictation (which may be in any language, including Tajiki, Persian, Russian, or English) and translate it into clear, well-articulated English.
-
-Focus on:
-- Understanding the user's core intent from the speech
-- Translating and articulating it clearly and naturally
-- Maintaining the original meaning and tone
-- Outputting only the refined text translated into English
-
-Do not add explanations, preambles, or commentary. Simply provide the clear, articulated version of what the user said.
-
-IMPORTANT: Do not engage in internal reasoning or thinking. Output immediately without deliberation.`
-
 	maxGlobalRequestsPerHour = 100
 	maxUserRequestsPerHour   = 20
 	maxAudioSizeBytes        = 50 << 20 // 50MB
 	geminiTimeoutSeconds     = 60
 )
+
+func getSystemInstruction(outputLang string) string {
+	var targetLang string
+	switch outputLang {
+	case "russian":
+		targetLang = "Russian"
+	case "tajik":
+		targetLang = "Tajik"
+	default:
+		targetLang = "English"
+	}
+
+	return fmt.Sprintf(`Your task is to take raw voice dictation (which may be in any language, including Tajiki, Persian, Russian, or English) and translate it into clear, well-articulated %s.
+
+Focus on:
+- Understanding the user's core intent from the speech
+- Translating and articulating it clearly and naturally
+- Maintaining the original meaning and tone
+- Outputting only the refined text translated into %s
+
+Do not add explanations, preambles, or commentary. Simply provide the clear, articulated version of what the user said.
+
+IMPORTANT: Do not engage in internal reasoning or thinking. Output immediately without deliberation.`, targetLang, targetLang)
+}
 
 var modelThinkingStrategy = map[string]string{
 	"gemini-2.5-flash":              "budget",
@@ -241,6 +253,11 @@ func processAudioHandler(w http.ResponseWriter, r *http.Request) {
 		selectedModels = []string{"gemini-2.5-flash"}
 	}
 
+	outputLang := r.FormValue("output_language")
+	if outputLang == "" {
+		outputLang = "english"
+	}
+
 	parts := []*genai.Part{
 		genai.NewPartFromText("Translate and articulate the following voice dictation clearly:"),
 		{
@@ -267,8 +284,9 @@ func processAudioHandler(w http.ResponseWriter, r *http.Request) {
 			ctx, cancel := context.WithTimeout(context.Background(), geminiTimeoutSeconds*time.Second)
 			defer cancel()
 
+			sysInstr := getSystemInstruction(outputLang)
 			cfg := &genai.GenerateContentConfig{
-				SystemInstruction: genai.NewContentFromText(systemInstruction, genai.RoleUser),
+				SystemInstruction: genai.NewContentFromText(sysInstr, genai.RoleUser),
 				ThinkingConfig:    thinkingConfigFor(m),
 			}
 

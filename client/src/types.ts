@@ -35,3 +35,17 @@ export const AVAILABLE_MODELS: AvailableModel[] = [
   { id: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite Preview' },
   { id: 'gemini-3.1-pro-preview',        label: 'Gemini 3.1 Pro Preview' },
 ]
+
+export type OutputLanguage = 'english' | 'russian' | 'tajik'
+
+export interface LanguageOption {
+  id: OutputLanguage
+  label: string
+  nativeLabel: string
+}
+
+export const AVAILABLE_LANGUAGES: LanguageOption[] = [
+  { id: 'english', label: 'English', nativeLabel: 'English' },
+  { id: 'russian', label: 'Russian', nativeLabel: 'Русский' },
+  { id: 'tajik', label: 'Tajik', nativeLabel: 'Тоҷикӣ' },
+]

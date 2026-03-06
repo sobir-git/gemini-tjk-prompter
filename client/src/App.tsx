@@ -6,7 +6,7 @@ import ResultsPanel from './components/ResultsPanel'
 import AudioVisualizer from './components/AudioVisualizer'
 import PrivacyPolicy from './components/PrivacyPolicy'
 import { useAudioRecorder } from './hooks/useAudioRecorder'
-import { STATUS, AppStatus, ModelResult, PromptResponse } from './types'
+import { STATUS, AppStatus, ModelResult, PromptResponse, OutputLanguage, AVAILABLE_LANGUAGES } from './types'
 
 export default function App() {
   const [status, setStatus] = useState<AppStatus>(STATUS.IDLE)
@@ -19,13 +19,24 @@ export default function App() {
     const saved = localStorage.getItem('selectedModels')
     return saved ? JSON.parse(saved) : ['gemini-2.5-flash']
   })
+  const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>(() => {
+    const saved = localStorage.getItem('outputLanguage')
+    return (saved as OutputLanguage) || 'english'
+  })
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null)
 
   const selectedModelsRef = useRef(selectedModels)
+  const outputLanguageRef = useRef(outputLanguage)
+  
   useEffect(() => { 
     selectedModelsRef.current = selectedModels 
     localStorage.setItem('selectedModels', JSON.stringify(selectedModels))
   }, [selectedModels])
+  
+  useEffect(() => {
+    outputLanguageRef.current = outputLanguage
+    localStorage.setItem('outputLanguage', outputLanguage)
+  }, [outputLanguage])
 
   useEffect(() => {
     const date = new Date();
@@ -50,6 +61,7 @@ export default function App() {
     const formData = new FormData()
     formData.append('audio', audioBlob, 'recording.webm')
     formData.append('models', selectedModelsRef.current.join(','))
+    formData.append('output_language', outputLanguageRef.current)
 
     try {
       const response = await fetch('/api/process-audio', { method: 'POST', body: formData })
@@ -177,36 +189,60 @@ export default function App() {
             </div>
           </div>
 
-          <div className="w-full mt-8 relative flex-shrink-0">
-            <button
-              onClick={toggleAdvanced}
-              className={`w-full py-3 border mono-label transition-colors hover:bg-[var(--bg-secondary)] ${
-                advancedMode 
-                  ? 'border-[var(--accent)] text-[var(--accent)]' 
-                  : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-              }`}
-            >
-              ҲОЛАТИ ПЕШРАФТА
-            </button>
+          <div className="w-full mt-8 flex flex-col gap-4 flex-shrink-0">
+            <div className="flex flex-col gap-2">
+              <span className="mono-label text-[var(--text-secondary)] text-[10px]">Забони натиҷа</span>
+              <div className="flex gap-2">
+                {AVAILABLE_LANGUAGES.map(lang => {
+                  const active = outputLanguage === lang.id
+                  return (
+                    <button
+                      key={lang.id}
+                      onClick={() => setOutputLanguage(lang.id)}
+                      className={`flex-1 px-3 py-2 transition-colors mono-label text-[10px] border ${
+                        active 
+                          ? 'bg-[var(--bg-secondary)] border-[var(--accent)] text-[var(--text-primary)]' 
+                          : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text-secondary)]'
+                      }`}
+                    >
+                      {lang.nativeLabel}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
-            <AnimatePresence>
-              {advancedMode && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute bottom-full left-0 w-full mb-4 z-50 shadow-2xl"
-                >
-                  <ModelSelector
-                    advancedMode={advancedMode}
-                    onToggleAdvanced={() => {}}
-                    selectedModels={selectedModels}
-                    onToggleModel={toggleModel}
-                    onClose={() => setAdvancedMode(false)}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="relative">
+              <button
+                onClick={toggleAdvanced}
+                className={`w-full py-3 border mono-label transition-colors hover:bg-[var(--bg-secondary)] ${
+                  advancedMode 
+                    ? 'border-[var(--accent)] text-[var(--accent)]' 
+                    : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                }`}
+              >
+                ҲОЛАТИ ПЕШРАФТА
+              </button>
+
+              <AnimatePresence>
+                {advancedMode && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute bottom-full left-0 w-full mb-4 z-50 shadow-2xl"
+                  >
+                    <ModelSelector
+                      advancedMode={advancedMode}
+                      onToggleAdvanced={() => {}}
+                      selectedModels={selectedModels}
+                      onToggleModel={toggleModel}
+                      onClose={() => setAdvancedMode(false)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </section>
 
@@ -226,12 +262,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="mt-6 pt-4 border-t border-[var(--border-strong)] flex justify-between items-center mono-label text-[var(--text-muted)] flex-shrink-0">
-        <div className="flex flex-col gap-1">
-          <span>© {new Date().getFullYear()} Пиндори Нав</span>
-          {advancedMode && (
-            <span className="opacity-60">{selectedModels.length} {selectedModels.length > 1 ? 'моделҳо' : 'модел'} интихоб шудаанд</span>
-          )}
-        </div>
+        <span>© {new Date().getFullYear()} Пиндори Нав</span>
         <button 
           onClick={() => setShowPrivacy(true)}
           className="hover:text-[var(--text-secondary)] transition-colors underline-offset-4 hover:underline"
