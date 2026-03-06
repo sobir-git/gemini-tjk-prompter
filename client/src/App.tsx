@@ -25,9 +25,13 @@ export default function App() {
   }, [selectedModels])
 
   useEffect(() => {
-    setCurrentDate(new Date().toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric',
-    }))
+    const date = new Date();
+    const months = [
+      'Январ', 'Феврал', 'Март', 'Апрел', 'Май', 'Июн',
+      'Июл', 'Август', 'Сентябр', 'Октябр', 'Ноябр', 'Декабр'
+    ];
+    const tajikDate = `${date.getDate()} ${months[date.getMonth()]}и ${date.getFullYear()}`;
+    setCurrentDate(tajikDate);
   }, [])
 
   const toggleModel = useCallback((modelId: string) => {
@@ -88,30 +92,42 @@ export default function App() {
   const isRecording = status === STATUS.RECORDING
   const isProcessing = status === STATUS.PROCESSING
 
+  useEffect(() => {
+    if (!advancedMode) return
+    const handleClickOutside = () => setAdvancedMode(false)
+    window.addEventListener('click', handleClickOutside)
+    return () => window.removeEventListener('click', handleClickOutside)
+  }, [advancedMode])
+
+  const toggleAdvanced = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setAdvancedMode(prev => !prev)
+  }
+
   return (
-    <div className="min-h-screen flex flex-col px-8 py-4 max-w-[1400px] mx-auto">
+    <div className="h-screen flex flex-col px-8 py-4 max-w-[1400px] mx-auto overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Header / Masthead */}
-      <header className="flex justify-between items-end border-b border-[var(--border-strong)] pb-4 mb-6">
-        <h1 className="display-serif text-[4rem] font-light text-[var(--text-primary)]">
-          The Art<br />of the Prompt
+      <header className="flex justify-between items-end border-b border-[var(--border-strong)] pb-4 mb-6 flex-shrink-0">
+        <h1 className="display-serif text-[4rem] font-light text-[var(--text-primary)] leading-none">
+          Баёни Промпт
         </h1>
-        <div className="flex flex-col items-end mono-label text-[var(--text-secondary)] leading-relaxed">
-          <span>Vol. I — Issue 04</span>
+        <div className="flex flex-col items-end mono-label text-[var(--text-secondary)] leading-tight">
+          <span>Нашри I — Шумораи 04</span>
           <span>{currentDate}</span>
-          <span>Dushanbe / San Francisco</span>
+          <span>Душанбе / Сан Франсиско</span>
         </div>
       </header>
 
       {/* Main Layout */}
-      <main className="flex-1 flex relative">
+      <main className="flex-1 flex relative min-h-0">
         {/* Vertical Divider */}
         <div className="absolute left-1/2 top-0 bottom-0 w-px bg-[var(--border-subtle)] -translate-x-1/2" />
 
         {/* Left Column — Input Side */}
-        <section className="w-1/2 flex flex-col pr-12 py-4 h-[calc(100vh-280px)] min-h-[400px]">
+        <section className="w-1/2 flex flex-col pr-12 py-4 overflow-hidden relative">
           <div className="flex-1 flex flex-col items-center justify-center gap-8">
             <p className="italic-serif text-[var(--text-secondary)] text-lg text-center max-w-[280px]">
-              Transforming raw vocalization into structured syntax.
+              Табдили гуфтори хом ба сохтори мукаммали синтаксисӣ.
             </p>
 
             <div className="flex flex-col items-center gap-6">
@@ -126,27 +142,27 @@ export default function App() {
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={isProcessing}
                 className={`w-[120px] h-[120px] rounded-full border border-[var(--border-subtle)] flex items-center justify-center`}
-                aria-label={isRecording ? 'Stop Recording' : 'Start Recording'}
+                aria-label={isRecording ? 'Ист' : 'Оғоз'}
               >
                 {isRecording ? <MicOff size={40} strokeWidth={1} /> : <Mic size={40} strokeWidth={1} />}
               </motion.button>
 
               <span className="mono-label text-[var(--text-secondary)]">
-                {isRecording ? 'LISTENING...' : isProcessing ? 'PROCESSING...' : 'DICTATE'}
+                {isRecording ? 'ГӮШ КАРДА ИСТОДААМ...' : isProcessing ? 'КОРКАРД...' : 'СУХАНРОНӢ'}
               </span>
             </div>
           </div>
 
-          <div className="w-full mt-8 relative">
+          <div className="w-full mt-8 relative flex-shrink-0">
             <button
-              onClick={() => setAdvancedMode(v => !v)}
-              className={`w-full py-3 border mono-label transition-colors ${
+              onClick={toggleAdvanced}
+              className={`w-full py-3 border mono-label transition-colors hover:bg-[var(--bg-secondary)] ${
                 advancedMode 
                   ? 'border-[var(--accent)] text-[var(--accent)]' 
-                  : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--text-secondary)]'
+                  : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
               }`}
             >
-              ADVANCED MODE
+              ҲОЛАТИ ПЕШРАФТА
             </button>
 
             <AnimatePresence>
@@ -162,6 +178,7 @@ export default function App() {
                     onToggleAdvanced={() => {}}
                     selectedModels={selectedModels}
                     onToggleModel={toggleModel}
+                    onClose={() => setAdvancedMode(false)}
                   />
                 </motion.div>
               )}
@@ -170,7 +187,7 @@ export default function App() {
         </section>
 
         {/* Right Column — Output Side */}
-        <section className="w-1/2 flex flex-col pl-12 py-4 h-[calc(100vh-280px)] min-h-[400px]">
+        <section className="w-1/2 flex flex-col pl-12 py-4 overflow-hidden h-full">
           <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
             <ResultsPanel
               status={status}
@@ -184,10 +201,10 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-6 pt-4 border-t border-[var(--border-strong)] flex justify-between items-center mono-label text-[var(--text-muted)]">
-        <span>© {new Date().getFullYear()} Vox Synth</span>
+      <footer className="mt-6 pt-4 border-t border-[var(--border-strong)] flex justify-between items-center mono-label text-[var(--text-muted)] flex-shrink-0">
+        <span>© {new Date().getFullYear()} Пиндори Нав</span>
         {advancedMode && (
-          <span className="opacity-60">{selectedModels.length} model{selectedModels.length > 1 ? 's' : ''} selected</span>
+          <span className="opacity-60">{selectedModels.length} {selectedModels.length > 1 ? 'моделҳо' : 'модел'} интихоб шудаанд</span>
         )}
       </footer>
     </div>

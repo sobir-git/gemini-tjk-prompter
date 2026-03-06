@@ -35,8 +35,8 @@ export default function ResultsPanel({ status, results, error, onReset, advanced
             exit={{ opacity: 0 }}
             className="flex-1 flex items-center justify-center"
           >
-            <p className="italic-serif text-[var(--text-muted)] text-xl opacity-50">
-              Awaiting input. The canvas is blank.
+            <p className="italic-serif text-[var(--text-muted)] text-xl opacity-50 text-center">
+              Мунтазири воридот. Саҳифа холӣ аст.
             </p>
           </motion.div>
         )}
@@ -51,7 +51,7 @@ export default function ResultsPanel({ status, results, error, onReset, advanced
           >
             <div className="w-12 h-px bg-[var(--accent)] animate-pulse" />
             <p className="mono-label text-[var(--text-secondary)] animate-pulse">
-              Synthesizing...
+              Синтез рафта истодааст...
             </p>
           </motion.div>
         )}
@@ -92,10 +92,10 @@ export default function ResultsPanel({ status, results, error, onReset, advanced
                         className="flex items-center gap-2 mono-label text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors border border-[var(--border-subtle)] px-3 py-1.5 hover:bg-[var(--bg-secondary)]"
                       >
                         {copiedId === r.model ? <Check size={14} className="text-[var(--accent)]" /> : <Copy size={14} />}
-                        <span>{copiedId === r.model ? 'COPIED' : 'COPY'}</span>
+                        <span>{copiedId === r.model ? 'НУСХАБАРДОРӢ ШУД' : 'НУСХАБАРДОРӢ'}</span>
                       </button>
                       <span className="mono-label text-[var(--text-muted)] text-[10px]">
-                        {(r.time_ms / 1000).toFixed(2)}s
+                        {(r.time_ms / 1000).toFixed(2)}с
                       </span>
                     </div>
                     <div className="mt-8 border-t border-dotted border-[var(--border-subtle)] w-full opacity-50" />
@@ -108,7 +108,7 @@ export default function ResultsPanel({ status, results, error, onReset, advanced
               onClick={onReset}
               className="mt-4 mono-label text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors self-center"
             >
-              [ CLEAR CANVAS ]
+              [ ТОЗА КАРДАНИ САҲИФА ]
             </button>
           </motion.div>
         )}
@@ -122,7 +122,7 @@ export default function ResultsPanel({ status, results, error, onReset, advanced
           >
             <div className="flex items-center gap-3 text-[var(--accent)]">
               <AlertCircle size={24} strokeWidth={1.5} />
-              <span className="mono-label">Transcription Interrupted</span>
+              <span className="mono-label">Транскрипсия қатъ шуд</span>
             </div>
             <p className="text-[var(--text-secondary)] italic-serif text-center max-w-md">
               {error}
@@ -131,7 +131,7 @@ export default function ResultsPanel({ status, results, error, onReset, advanced
               onClick={onReset}
               className="px-6 py-2 border border-[var(--accent)] text-[var(--accent)] mono-label hover:bg-[var(--accent)] hover:text-white transition-all"
             >
-              RETRY
+              ТАКРОР
             </button>
           </motion.div>
         )}

@@ -17,15 +17,15 @@ import (
 	"google.golang.org/genai"
 )
 
-const systemInstruction = `Your task is to take raw voice dictation (which may be in any language, including Tajiki, Persian, Russian, or English) and translate it into clear, well-articulated English.
+const systemInstruction = `Вазифаи шумо аз он иборат аст, ки диктанти овозии хомро (ки метавонад ба ҳар забон, аз ҷумла тоҷикӣ, форсӣ, русӣ ё англисӣ бошад) қабул карда, онро ба забони англисии равшан ва фаҳмо табдил диҳед.
 
-Focus on:
-- Understanding the user's core intent from the speech
-- Translating and articulating it clearly and naturally
-- Maintaining the original meaning and tone
-- Outputting only the refined text translated into English
+Таваҷҷӯҳ ба:
+- Фаҳмидани мақсади асосии корбар аз гуфтор
+- Тарҷума ва баёни равшану табиӣ
+- Нигоҳ доштани маъно ва оҳанги аслӣ
+- Танҳо матни такмилёфтаи ба англисӣ тарҷумашударо пешниҳод кунед
 
-Do not add explanations, preambles, or commentary. Simply provide the clear, articulated version of what the user said.`
+Ягон тавзеҳот, муқаддима ё шарҳ илова накунед. Танҳо нусхаи равшан ва баёни дурусти он чизеро, ки корбар гуфтааст, пешниҳод кунед.`
 
 type ModelResult struct {
 	Model           string `json:"model"`
