@@ -273,7 +273,10 @@ func processAudioHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	outputLang := r.FormValue("output_language")
-	if outputLang == "" {
+	switch outputLang {
+	case "english", "russian", "tajik":
+		// valid
+	default:
 		outputLang = "english"
 	}
 
@@ -357,6 +360,8 @@ func contactHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 8<<10) // 8KB max
 
 	ip := getIP(r)
 	if err := contactLimiter.checkLimit(ip); err != nil {
