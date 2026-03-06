@@ -17,7 +17,8 @@ import (
 	"google.golang.org/genai"
 )
 
-const systemInstruction = `Вазифаи шумо аз он иборат аст, ки диктанти овозии хомро (ки метавонад ба ҳар забон, аз ҷумла тоҷикӣ, форсӣ, русӣ ё англисӣ бошад) қабул карда, онро ба забони англисии равшан ва фаҳмо табдил диҳед.
+const (
+	systemInstruction = `Вазифаи шумо аз он иборат аст, ки диктанти овозии хомро (ки метавонад ба ҳар забон, аз ҷумла тоҷикӣ, форсӣ, русӣ ё англисӣ бошад) қабул карда, онро ба забони англисии равшан ва фаҳмо табдил диҳед.
 
 Таваҷҷӯҳ ба:
 - Фаҳмидани мақсади асосии корбар аз гуфтор
@@ -26,6 +27,54 @@ const systemInstruction = `Вазифаи шумо аз он иборат аст
 - Танҳо матни такмилёфтаи ба англисӣ тарҷумашударо пешниҳод кунед
 
 Ягон тавзеҳот, муқаддима ё шарҳ илова накунед. Танҳо нусхаи равшан ва баёни дурусти он чизеро, ки корбар гуфтааст, пешниҳод кунед.`
+
+	maxGlobalRequestsPerHour = 100
+	maxUserRequestsPerHour   = 20
+	maxAudioDurationSeconds  = 120
+)
+
+type RateLimiter struct {
+	sync.Mutex
+	globalRequests int
+	userRequests   map[string]int
+	lastReset      time.Time
+}
+
+func (rl *RateLimiter) checkLimit(ip string) error {
+	rl.Lock()
+	defer rl.Unlock()
+
+	if time.Since(rl.lastReset) > time.Hour {
+		rl.globalRequests = 0
+		rl.userRequests = make(map[string]int)
+		rl.lastReset = time.Now()
+	}
+
+	if rl.globalRequests >= maxGlobalRequestsPerHour {
+		return fmt.Errorf("global rate limit exceeded (100/hr)")
+	}
+
+	if rl.userRequests[ip] >= maxUserRequestsPerHour {
+		return fmt.Errorf("user rate limit exceeded (20/hr)")
+	}
+
+	rl.globalRequests++
+	rl.userRequests[ip]++
+	return nil
+}
+
+var limiter = &RateLimiter{
+	userRequests: make(map[string]int),
+	lastReset:    time.Now(),
+}
+
+func getIP(r *http.Request) string {
+	ip := r.Header.Get("X-Forwarded-For")
+	if ip == "" {
+		ip = r.RemoteAddr
+	}
+	return strings.Split(ip, ":")[0]
+}
 
 type ModelResult struct {
 	Model           string `json:"model"`
@@ -78,12 +127,18 @@ func init() {
 }
 
 func processAudioHandler(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-	
 	if r.Method != http.MethodPost {
 		writeError(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	ip := getIP(r)
+	if err := limiter.checkLimit(ip); err != nil {
+		writeError(w, err.Error(), http.StatusTooManyRequests)
+		return
+	}
+
+	startTime := time.Now()
 
 	if err := r.ParseMultipartForm(25 << 20); err != nil {
 		writeError(w, "failed to parse form: "+err.Error(), http.StatusBadRequest)
