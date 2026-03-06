@@ -4,3 +4,4 @@ server/vendor/
 server/web/dist/*
 !server/web/dist/.gitkeep
 server/tmp/
+*.db
