@@ -1,0 +1,19 @@
+root = "."
+cmd = "go build -o ./tmp/server ."
+bin = "./tmp/server"
+tmp_dir = "tmp"
+
+[build]
+full_binary = "./tmp/server"
+log = "build.log"
+include_ext = ["go", "tmpl", "html"]
+exclude_dir = ["tmp", "web/dist"]
+
+[color]
+app = "cyan"
+build = "yellow"
+main = "magenta"
+watcher = "green"
+
+[misc]
+clean_on_exit = true

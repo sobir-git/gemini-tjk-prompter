@@ -1,0 +1,16 @@
+# Optimized dev image with better caching
+FROM golang:1.26-alpine AS base
+WORKDIR /app
+# Install build tools once (cached)
+RUN apk add --no-cache bash git curl build-base && \
+    go install github.com/air-verse/air@latest
+
+# Final dev stage
+FROM base
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+RUN go mod download
+# Copy source files
+COPY . .
+# Use air for hot reload
+CMD ["air", "-c", "air.toml"]

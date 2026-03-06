@@ -1,0 +1,38 @@
+services:
+  server-dev:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+      cache_from:
+        - gemini-tjk-prompter-server-dev:latest
+    env_file:
+      - .env
+    environment:
+      - PORT=8080
+      - GOCACHE=/root/.cache/go-build
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./server:/app
+      - go-cache:/root/.cache/go-build
+      - go-mod-cache:/go/pkg/mod
+    command: ["air", "-c", "air.toml"]
+    restart: unless-stopped
+
+  client-dev:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["sh", "-c", "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"]
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE=http://localhost:8080
+      - npm_config_cache=/tmp/.npm
+    restart: unless-stopped
+
+volumes:
+  go-cache:
+  go-mod-cache:

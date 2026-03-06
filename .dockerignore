@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+REQUIREMENTS.md
+docs/
+
+# Environment
+.env
+.env.*
+
+# Node modules and build artifacts
+client/node_modules/
+client/dist/
+server/tmp/
+server/web/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+
+# Development files
+air.toml

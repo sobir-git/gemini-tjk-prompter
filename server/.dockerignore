@@ -1,0 +1,18 @@
+# Build artifacts
+tmp/
+web/dist/
+vendor/
+
+# Development files
+air.toml
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
