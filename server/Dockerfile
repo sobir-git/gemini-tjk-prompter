@@ -43,8 +43,8 @@ RUN apk --no-cache add su-exec
 # Copy only the binary from builder stage
 COPY --from=builder /app/server .
 
-# Copy entrypoint script
-COPY entrypoint.sh .
+# Copy entrypoint script from builder stage (already copied with server/ directory)
+COPY --from=builder /app/entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
 # Create data directory for SQLite database
