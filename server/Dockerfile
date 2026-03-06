@@ -13,6 +13,8 @@ RUN npm run build
 # Go builder stage with optimized caching
 FROM golang:1.26-alpine AS builder
 WORKDIR /app
+# Install SQLite development dependencies
+RUN apk add --no-cache sqlite-dev
 # Copy go mod files first (cached unless they change)
 COPY server/go.mod server/go.sum ./
 # Download dependencies
@@ -24,11 +26,11 @@ RUN mkdir -p web/dist
 # Copy built frontend from previous stage
 COPY --from=ui-builder /frontend/dist ./web/dist
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server .
+RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o server .
 
 # Final minimal runtime image
 FROM alpine:3.19
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata sqlite
 WORKDIR /app
 
 # Create data directory for SQLite database
