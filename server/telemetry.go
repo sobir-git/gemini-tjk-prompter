@@ -147,7 +147,7 @@ func GetTelemetryStats(timeRange string) (*TelemetryStats, error) {
 			COUNT(*) as total_requests,
 			COUNT(CASE WHEN status = 'success' THEN 1 END) as success_count,
 			COUNT(CASE WHEN status = 'error' THEN 1 END) as error_count,
-			AVG(duration_ms) as avg_duration_ms,
+			COALESCE(AVG(duration_ms), 0) as avg_duration_ms,
 			COUNT(DISTINCT model) as unique_models
 		FROM usage 
 		%s
@@ -177,8 +177,8 @@ func GetModelStats(timeRange string) ([]ModelStat, error) {
 		SELECT 
 			model,
 			COUNT(*) as count,
-			AVG(duration_ms) as avg_duration,
-			COUNT(CASE WHEN status = 'error' THEN 1 END) * 100.0 / COUNT(*) as error_rate
+			COALESCE(AVG(duration_ms), 0) as avg_duration,
+			COALESCE(COUNT(CASE WHEN status = 'error' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as error_rate
 		FROM usage 
 		%s
 		GROUP BY model 
