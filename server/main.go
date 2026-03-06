@@ -123,6 +123,26 @@ func (rl *RateLimiter) checkLimit(ip string) error {
 	return nil
 }
 
+func (rl *RateLimiter) cleanup() {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	cutoff := time.Now().Add(-time.Hour)
+	for ip, times := range rl.requests {
+		var recent []time.Time
+		for _, t := range times {
+			if t.After(cutoff) {
+				recent = append(recent, t)
+			}
+		}
+		if len(recent) == 0 {
+			delete(rl.requests, ip)
+		} else {
+			rl.requests[ip] = recent
+		}
+	}
+}
+
 var limiter = newRateLimiter(maxUserRequestsPerHour)
 var globalLimiter = newRateLimiter(maxGlobalRequestsPerHour)
 var contactLimiter = newRateLimiter(5) // max 5 contact requests per hour per IP
@@ -442,6 +462,17 @@ func main() {
 
 	// Initialize telemetry database
 	initDB()
+
+	// Periodically clean up expired rate limiter entries to prevent memory growth
+	go func() {
+		ticker := time.NewTicker(15 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			limiter.cleanup()
+			globalLimiter.cleanup()
+			contactLimiter.cleanup()
+		}
+	}()
 
 	if os.Getenv("CORS_ORIGIN") == "" {
 		log.Println("WARNING: CORS_ORIGIN not set — all origins are allowed. Set it to your frontend URL in production.")

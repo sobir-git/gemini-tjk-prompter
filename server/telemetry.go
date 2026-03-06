@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -20,9 +21,8 @@ func initDB() {
 	}
 	
 	// Ensure directory exists with proper permissions
-	if dir := os.Getenv("TELEMETRY_DB_PATH"); dir != "" {
-		// Extract directory from full path
-		dirPath := dir[:len(dir)-len("/telemetry.db")]
+	if dbPath != "telemetry.db" {
+		dirPath := filepath.Dir(dbPath)
 		if err := os.MkdirAll(dirPath, 0755); err != nil {
 			log.Printf("WARNING: Failed to create database directory: %v", err)
 			return
