@@ -26,13 +26,49 @@ Focus on:
 - Maintaining the original meaning and tone
 - Outputting only the refined text translated into English
 
-Do not add explanations, preambles, or commentary. Simply provide the clear, articulated version of what the user said.`
+Do not add explanations, preambles, or commentary. Simply provide the clear, articulated version of what the user said.
+
+IMPORTANT: Do not engage in internal reasoning or thinking. Output immediately without deliberation.`
 
 	maxGlobalRequestsPerHour = 100
 	maxUserRequestsPerHour   = 20
 	maxAudioSizeBytes        = 50 << 20 // 50MB
 	geminiTimeoutSeconds     = 60
 )
+
+// thinkingModels maps model name prefix to the correct thinking-disable strategy.
+// - "budget": use ThinkingBudget=0 (Gemini 2.5 series)
+// - "level":  use ThinkingLevel="minimal" (Gemini 3.x series, cannot fully disable)
+// - "":       no ThinkingConfig (models that don't support it)
+var modelThinkingStrategy = map[string]string{
+	"gemini-2.5-flash":              "budget",
+	"gemini-2.5-flash-lite":         "budget",
+	"gemini-2.5-pro":                "budget",
+	"gemini-2.0-flash":              "",
+	"gemini-flash-latest":           "",
+	"gemini-flash-lite-latest":      "",
+	"gemini-pro-latest":             "",
+	"gemini-3-flash-preview":        "level",
+	"gemini-3-pro-preview":          "level",
+	"gemini-3.1-flash-lite-preview": "level",
+	"gemini-3.1-pro-preview":        "level",
+}
+
+// thinkingConfigFor returns the appropriate ThinkingConfig to minimise
+// thinking tokens for the given model, or nil if unsupported.
+func thinkingConfigFor(model string) *genai.ThinkingConfig {
+	strategy := modelThinkingStrategy[model]
+	switch strategy {
+	case "budget":
+		zero := int32(0)
+		return &genai.ThinkingConfig{ThinkingBudget: &zero}
+	case "level":
+		lvl := genai.ThinkingLevelMinimal
+		return &genai.ThinkingConfig{ThinkingLevel: lvl}
+	default:
+		return nil
+	}
+}
 
 // allowedModels is the whitelist of permitted Gemini models.
 // Must stay in sync with AVAILABLE_MODELS in client/src/types.ts.
@@ -247,10 +283,6 @@ func processAudioHandler(w http.ResponseWriter, r *http.Request) {
 		genai.NewContentFromParts(parts, genai.RoleUser),
 	}
 
-	config := &genai.GenerateContentConfig{
-		SystemInstruction: genai.NewContentFromText(systemInstruction, genai.RoleUser),
-	}
-
 	var results []ModelResult
 	var wg sync.WaitGroup
 	var mu sync.Mutex
@@ -264,8 +296,14 @@ func processAudioHandler(w http.ResponseWriter, r *http.Request) {
 			ctx, cancel := context.WithTimeout(context.Background(), geminiTimeoutSeconds*time.Second)
 			defer cancel()
 
+			// Build per-model config with appropriate thinking strategy.
+			cfg := &genai.GenerateContentConfig{
+				SystemInstruction: genai.NewContentFromText(systemInstruction, genai.RoleUser),
+				ThinkingConfig:    thinkingConfigFor(m),
+			}
+
 			startModelTime := time.Now()
-			res, err := geminiClient.Models.GenerateContent(ctx, m, contents, config)
+			res, err := geminiClient.Models.GenerateContent(ctx, m, contents, cfg)
 			modelTime := time.Since(startModelTime).Milliseconds()
 
 			mu.Lock()
