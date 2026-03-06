@@ -333,6 +333,49 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
+func contactHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ip := getIP(r)
+	if err := limiter.checkLimit(ip); err != nil {
+		writeError(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
+		return
+	}
+
+	var req struct {
+		Email   string `json:"email"`
+		Message string `json:"message"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, "invalid request format", http.StatusBadRequest)
+		return
+	}
+
+	req.Message = strings.TrimSpace(req.Message)
+	if req.Message == "" {
+		writeError(w, "message is required", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Message) > 2000 {
+		writeError(w, "message is too long (max 2000 characters)", http.StatusBadRequest)
+		return
+	}
+
+	if err := SaveFeedback(req.Email, req.Message); err != nil {
+		log.Printf("ERROR: failed to save feedback: %v", err)
+		writeError(w, "failed to save message", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
 func spaHandler() http.Handler {
 	fileServer := http.FileServer(http.FS(spaFS))
 
@@ -384,6 +427,7 @@ func main() {
 	http.HandleFunc("/health", corsMiddleware(healthHandler))
 	http.HandleFunc("/api/process-audio", corsMiddleware(processAudioHandler))
 	http.HandleFunc("/api/telemetry", telemetryHandler)
+	http.HandleFunc("/api/contact", corsMiddleware(contactHandler))
 
 	// Frontend
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

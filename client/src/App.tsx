@@ -6,6 +6,7 @@ import ResultsPanel from './components/ResultsPanel'
 import AudioVisualizer from './components/AudioVisualizer'
 import PrivacyPolicy from './components/PrivacyPolicy'
 import AboutModal from './components/AboutModal'
+import ContactModal from './components/ContactModal'
 import { useAudioRecorder } from './hooks/useAudioRecorder'
 import { STATUS, AppStatus, ModelResult, PromptResponse, OutputLanguage, AVAILABLE_LANGUAGES } from './types'
 
@@ -17,6 +18,7 @@ export default function App() {
   const [advancedMode, setAdvancedMode] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [showContact, setShowContact] = useState(false)
   const [selectedModels, setSelectedModels] = useState<string[]>(() => {
     const saved = localStorage.getItem('selectedModels')
     return saved ? JSON.parse(saved) : ['gemini-2.5-flash']
@@ -266,18 +268,26 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-4 md:mt-6 pt-4 border-t border-[var(--border-strong)] flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0 mono-label text-[var(--text-muted)] flex-shrink-0 text-xs md:text-sm text-center md:text-left">
-        <span>© {new Date().getFullYear()} Пиндори Нав</span>
-        <div className="flex flex-col md:flex-row gap-3 md:gap-6">
+      <footer className="mt-4 md:mt-6 pt-4 border-t border-[var(--border-strong)] flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0 mono-label text-[var(--text-muted)] flex-shrink-0 text-[10px] sm:text-xs md:text-sm text-center md:text-left">
+        <span className="shrink-0">© {new Date().getFullYear()} Пиндори Нав</span>
+        <div className="flex flex-row flex-wrap justify-center items-center gap-x-4 gap-y-2 md:gap-6">
+          <button 
+            onClick={() => setShowContact(true)}
+            className="hover:text-[var(--text-secondary)] transition-colors underline-offset-4 hover:underline whitespace-nowrap"
+          >
+            Тамос бо мо
+          </button>
+          <span className="md:hidden text-[var(--border-subtle)]">•</span>
           <button 
             onClick={() => setShowAbout(true)}
-            className="hover:text-[var(--text-secondary)] transition-colors underline-offset-4 hover:underline"
+            className="hover:text-[var(--text-secondary)] transition-colors underline-offset-4 hover:underline whitespace-nowrap"
           >
             Дар бораи барнома
           </button>
+          <span className="md:hidden text-[var(--border-subtle)]">•</span>
           <button 
             onClick={() => setShowPrivacy(true)}
-            className="hover:text-[var(--text-secondary)] transition-colors underline-offset-4 hover:underline"
+            className="hover:text-[var(--text-secondary)] transition-colors underline-offset-4 hover:underline whitespace-nowrap"
           >
             Сиёсати маҳрамият
           </button>
@@ -286,6 +296,7 @@ export default function App() {
 
       <PrivacyPolicy isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} />
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+      <ContactModal isOpen={showContact} onClose={() => setShowContact(false)} />
     </div>
   )
 }

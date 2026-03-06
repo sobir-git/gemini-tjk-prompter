@@ -62,9 +62,23 @@ func serveTelemetryJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Database query failed", http.StatusInternalServerError)
 		return
 	}
+
+	feedbacks, err := GetFeedbacks(100) // limit to 100 latest feedbacks
+	if err != nil {
+		http.Error(w, "Database query failed", http.StatusInternalServerError)
+		return
+	}
 	
+	response := struct {
+		Events    *PaginatedEvents `json:"events"`
+		Feedbacks []FeedbackEvent  `json:"feedbacks"`
+	}{
+		Events:    result,
+		Feedbacks: feedbacks,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	json.NewEncoder(w).Encode(response)
 }
 
 func serveTelemetryHTML(w http.ResponseWriter, r *http.Request, username, password string) {
@@ -87,8 +101,14 @@ func serveTelemetryHTML(w http.ResponseWriter, r *http.Request, username, passwo
 		http.Error(w, "Database query failed", http.StatusInternalServerError)
 		return
 	}
+
+	feedbacks, err := GetFeedbacks(50)
+	if err != nil {
+		http.Error(w, "Database query failed", http.StatusInternalServerError)
+		return
+	}
 	
-	renderDashboard(w, stats, modelStats, username, password, r.Host)
+	renderDashboard(w, stats, modelStats, feedbacks, username, password, r.Host)
 }
 
 func renderEmptyDashboard(w http.ResponseWriter) {
@@ -118,7 +138,7 @@ func renderEmptyDashboard(w http.ResponseWriter) {
 	fmt.Fprint(w, html)
 }
 
-func renderDashboard(w http.ResponseWriter, stats *TelemetryStats, modelStats []ModelStat, username, password, host string) {
+func renderDashboard(w http.ResponseWriter, stats *TelemetryStats, modelStats []ModelStat, feedbacks []FeedbackEvent, username, password, host string) {
 	html := fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -152,6 +172,7 @@ func renderDashboard(w http.ResponseWriter, stats *TelemetryStats, modelStats []
         .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold; }
         .status-success { background-color: #d4edda; color: #155724; }
         .status-error { background-color: #f8d7da; color: #721c24; }
+        .feedback-message { white-space: pre-wrap; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -200,6 +221,24 @@ func renderDashboard(w http.ResponseWriter, stats *TelemetryStats, modelStats []
         </div>
         
         <div class="card">
+            <h2>Feedback & Contact Submissions</h2>
+            <div class="events-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th width="150">Time</th>
+                            <th width="200">Email</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        %s
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card">
             <h2>Recent Events</h2>
             <div id="events-container">
                 <div class="loading">Loading events...</div>
@@ -229,7 +268,7 @@ func renderDashboard(w http.ResponseWriter, stats *TelemetryStats, modelStats []
                 if (!response.ok) throw new Error('Failed to load events');
                 
                 const result = await response.json();
-                renderEvents(result.data, result.pagination);
+                renderEvents(result.events.data, result.events.pagination);
             } catch (error) {
                 container.innerHTML = '<div class="error">Failed to load events</div>';
             }
@@ -293,6 +332,7 @@ func renderDashboard(w http.ResponseWriter, stats *TelemetryStats, modelStats []
 		stats.AvgDurationMs,
 		stats.UniqueModels,
 		generateModelTableRows(modelStats),
+		generateFeedbackTableRows(feedbacks),
 		username, password, host,
 		username, password,
 	)
@@ -316,6 +356,28 @@ func generateModelTableRows(stats []ModelStat) string {
 				<td>%.0fms</td>
 				<td class="%s">%.1f%%</td>
 			</tr>`, stat.Model, stat.Count, stat.AvgDuration, errorClass, stat.ErrorRate))
+	}
+	return rows.String()
+}
+
+func generateFeedbackTableRows(feedbacks []FeedbackEvent) string {
+	if len(feedbacks) == 0 {
+		return `<tr><td colspan="3" style="text-align: center; color: #666;">No feedback submitted yet</td></tr>`
+	}
+	
+	var rows strings.Builder
+	for _, f := range feedbacks {
+		email := f.Email
+		if email == "" {
+			email = "<em style='color: #999;'>Not provided</em>"
+		}
+		
+		rows.WriteString(fmt.Sprintf(`
+			<tr class="event-row">
+				<td style="white-space: nowrap;">%s</td>
+				<td>%s</td>
+				<td><div class="feedback-message">%s</div></td>
+			</tr>`, f.Timestamp, email, f.Message))
 	}
 	return rows.String()
 }

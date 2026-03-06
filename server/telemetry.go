@@ -59,6 +59,13 @@ func initDB() {
 	
 	CREATE INDEX IF NOT EXISTS idx_timestamp ON usage(timestamp);
 	CREATE INDEX IF NOT EXISTS idx_model ON usage(model);
+
+	CREATE TABLE IF NOT EXISTS feedback (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+		email TEXT,
+		message TEXT NOT NULL
+	);
 	`
 	
 	if _, err := db.Exec(createTableSQL); err != nil {
@@ -93,6 +100,17 @@ func logUsage(model, status string, durationMs int64) {
 	}()
 }
 
+// SaveFeedback stores a contact/feedback message in SQLite
+func SaveFeedback(email, message string) error {
+	if db == nil {
+		return fmt.Errorf("database not available")
+	}
+
+	insertSQL := `INSERT INTO feedback (email, message) VALUES (?, ?)`
+	_, err := db.Exec(insertSQL, email, message)
+	return err
+}
+
 // TelemetryStats represents summary statistics
 type TelemetryStats struct {
 	TotalRequests int
@@ -118,6 +136,14 @@ type TelemetryEvent struct {
 	DurationMs int64  `json:"duration_ms"`
 }
 
+// FeedbackEvent represents a single feedback submission
+type FeedbackEvent struct {
+	ID        int    `json:"id"`
+	Timestamp string `json:"timestamp"`
+	Email     string `json:"email"`
+	Message   string `json:"message"`
+}
+
 // PaginationInfo contains pagination metadata
 type PaginationInfo struct {
 	Page       int  `json:"page"`
@@ -132,6 +158,37 @@ type PaginationInfo struct {
 type PaginatedEvents struct {
 	Data       []TelemetryEvent `json:"data"`
 	Pagination PaginationInfo   `json:"pagination"`
+}
+
+// GetFeedbacks retrieves the latest feedback submissions
+func GetFeedbacks(limit int) ([]FeedbackEvent, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not available")
+	}
+
+	query := `
+		SELECT id, timestamp, email, message
+		FROM feedback 
+		ORDER BY timestamp DESC 
+		LIMIT ?
+	`
+
+	rows, err := db.Query(query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var feedbacks []FeedbackEvent
+	for rows.Next() {
+		var f FeedbackEvent
+		if err := rows.Scan(&f.ID, &f.Timestamp, &f.Email, &f.Message); err != nil {
+			continue
+		}
+		feedbacks = append(feedbacks, f)
+	}
+
+	return feedbacks, nil
 }
 
 // GetTelemetryStats retrieves summary statistics for the given time range
