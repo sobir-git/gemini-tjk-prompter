@@ -3,9 +3,9 @@ FROM node:22-alpine AS ui-builder
 WORKDIR /frontend
 # Copy only package files first for better caching
 COPY client/package*.json ./
-# Install dependencies (cached unless package files change)
-RUN npm ci --only=production
-# Copy source files (cached unless they change)
+# Install dependencies
+RUN npm install
+# Copy source files
 COPY client/ .
 # Build the frontend
 RUN npm run build
@@ -15,10 +15,12 @@ FROM golang:1.26-alpine AS builder
 WORKDIR /app
 # Copy go mod files first (cached unless they change)
 COPY server/go.mod server/go.sum ./
-# Download dependencies (cached unless go files change)
+# Download dependencies
 RUN go mod download
-# Copy source files (cached unless they change)
+# Copy source files
 COPY server/ .
+# Create the directory for built frontend
+RUN mkdir -p web/dist
 # Copy built frontend from previous stage
 COPY --from=ui-builder /frontend/dist ./web/dist
 # Build the application
@@ -34,8 +36,6 @@ COPY --from=builder /app/server .
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 USER appuser
-EXPOSE 9000
-# Health check for better monitoring
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:9000/health || exit 1
+# Railway sets PORT env var
+EXPOSE 8080
 CMD ["./server"]
