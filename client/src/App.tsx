@@ -5,6 +5,7 @@ import ModelSelector from './components/ModelSelector'
 import ResultsPanel from './components/ResultsPanel'
 import AudioVisualizer from './components/AudioVisualizer'
 import PrivacyPolicy from './components/PrivacyPolicy'
+import AboutModal from './components/AboutModal'
 import { useAudioRecorder } from './hooks/useAudioRecorder'
 import { STATUS, AppStatus, ModelResult, PromptResponse, OutputLanguage, AVAILABLE_LANGUAGES } from './types'
 
@@ -15,6 +16,7 @@ export default function App() {
   const [currentDate, setCurrentDate] = useState('')
   const [advancedMode, setAdvancedMode] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
   const [selectedModels, setSelectedModels] = useState<string[]>(() => {
     const saved = localStorage.getItem('selectedModels')
     return saved ? JSON.parse(saved) : ['gemini-2.5-flash']
@@ -126,13 +128,13 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col px-8 py-4 max-w-[1400px] mx-auto overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
+    <div className="h-screen flex flex-col px-4 md:px-8 py-4 max-w-[1400px] mx-auto overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Header / Masthead */}
-      <header className="flex justify-between items-end border-b border-[var(--border-strong)] pb-4 mb-6 flex-shrink-0">
-        <h1 className="display-serif text-[4rem] font-light text-[var(--text-primary)] leading-none">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 md:gap-0 border-b border-[var(--border-strong)] pb-4 mb-4 md:mb-6 flex-shrink-0">
+        <h1 className="display-serif text-[2.5rem] md:text-[4rem] font-light text-[var(--text-primary)] leading-none">
           Баёни Промпт
         </h1>
-        <div className="flex flex-col items-end mono-label text-[var(--text-secondary)] leading-tight">
+        <div className="flex flex-col items-start md:items-end mono-label text-[var(--text-secondary)] leading-tight">
           <span>Нашри I — Шумораи 04</span>
           <span>{currentDate}</span>
           <span>Душанбе / Сан Франсиско</span>
@@ -140,12 +142,13 @@ export default function App() {
       </header>
 
       {/* Main Layout */}
-      <main className="flex-1 flex relative min-h-0">
-        {/* Vertical Divider */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-[var(--border-subtle)] -translate-x-1/2" />
+      <main className="flex-1 flex flex-col md:flex-row relative min-h-0 overflow-y-auto md:overflow-hidden">
+        {/* Divider */}
+        <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-[var(--border-subtle)] -translate-x-1/2" />
+        <div className="md:hidden w-full h-px bg-[var(--border-subtle)] my-6" />
 
         {/* Left Column — Input Side */}
-        <section className="w-1/2 flex flex-col pr-12 py-4 overflow-hidden relative">
+        <section className="w-full md:w-1/2 flex flex-col md:pr-12 py-4 md:overflow-hidden relative min-h-[400px] md:min-h-0">
           <div className="flex-1 flex flex-col items-center justify-center gap-8">
             <p className="italic-serif text-[var(--text-secondary)] text-lg text-center max-w-[280px]">
               Табдили гуфтори хом ба сохтори мукаммали синтаксисӣ.
@@ -162,7 +165,7 @@ export default function App() {
                 transition={{ duration: 0 }}
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={isProcessing}
-                className={`w-[120px] h-[120px] rounded-full border border-[var(--border-subtle)] flex items-center justify-center`}
+                className={`w-[120px] h-[120px] rounded-full border border-[var(--border-subtle)] flex items-center justify-center shrink-0`}
                 aria-label={isRecording ? 'Ист' : 'Оғоз'}
               >
                 {isRecording ? <MicOff size={40} strokeWidth={1} /> : <Mic size={40} strokeWidth={1} />}
@@ -182,7 +185,7 @@ export default function App() {
               )}
 
               {isRecording && analyser && (
-                <div className="h-[60px] w-[300px] flex items-center justify-center opacity-80 mt-4 transition-opacity duration-300">
+                <div className="h-[60px] w-full max-w-[300px] flex items-center justify-center opacity-80 mt-4 transition-opacity duration-300">
                   <AudioVisualizer analyser={analyser} />
                 </div>
               )}
@@ -192,14 +195,14 @@ export default function App() {
           <div className="w-full mt-8 flex flex-col gap-4 flex-shrink-0">
             <div className="flex flex-col gap-2">
               <span className="mono-label text-[var(--text-secondary)] text-[10px]">Забони натиҷа</span>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap md:flex-nowrap gap-2">
                 {AVAILABLE_LANGUAGES.map(lang => {
                   const active = outputLanguage === lang.id
                   return (
                     <button
                       key={lang.id}
                       onClick={() => setOutputLanguage(lang.id)}
-                      className={`flex-1 px-3 py-2 transition-colors mono-label text-[10px] border ${
+                      className={`flex-1 min-w-[80px] px-3 py-2 transition-colors mono-label text-[10px] border ${
                         active 
                           ? 'bg-[var(--bg-secondary)] border-[var(--accent)] text-[var(--text-primary)]' 
                           : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text-secondary)]'
@@ -246,9 +249,11 @@ export default function App() {
           </div>
         </section>
 
+        <div className="md:hidden w-full h-px bg-[var(--border-subtle)] my-8" />
+
         {/* Right Column — Output Side */}
-        <section className="w-1/2 flex flex-col pl-12 py-4 overflow-hidden h-full">
-          <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+        <section className="w-full md:w-1/2 flex flex-col md:pl-12 py-4 md:overflow-hidden min-h-[500px] md:min-h-0 md:h-full">
+          <div className="flex-1 md:overflow-y-auto pr-0 md:pr-4 custom-scrollbar">
             <ResultsPanel
               status={status}
               results={results}
@@ -261,17 +266,26 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-6 pt-4 border-t border-[var(--border-strong)] flex justify-between items-center mono-label text-[var(--text-muted)] flex-shrink-0">
+      <footer className="mt-4 md:mt-6 pt-4 border-t border-[var(--border-strong)] flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0 mono-label text-[var(--text-muted)] flex-shrink-0 text-xs md:text-sm text-center md:text-left">
         <span>© {new Date().getFullYear()} Пиндори Нав</span>
-        <button 
-          onClick={() => setShowPrivacy(true)}
-          className="hover:text-[var(--text-secondary)] transition-colors underline-offset-4 hover:underline"
-        >
-          Сиёсати маҳрамият
-        </button>
+        <div className="flex flex-col md:flex-row gap-3 md:gap-6">
+          <button 
+            onClick={() => setShowAbout(true)}
+            className="hover:text-[var(--text-secondary)] transition-colors underline-offset-4 hover:underline"
+          >
+            Дар бораи барнома
+          </button>
+          <button 
+            onClick={() => setShowPrivacy(true)}
+            className="hover:text-[var(--text-secondary)] transition-colors underline-offset-4 hover:underline"
+          >
+            Сиёсати маҳрамият
+          </button>
+        </div>
       </footer>
 
       <PrivacyPolicy isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} />
+      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
     </div>
   )
 }
